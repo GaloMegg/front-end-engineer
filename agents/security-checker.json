@@ -1,0 +1,110 @@
+{
+  "name": "Security Checker",
+  "description": "Performs deep security analysis on frontend codebases following OWASP Frontend Security best practices. Detects insecure patterns, improper token handling, vulnerable UI interactions, unsanitized inputs, and dangerous usage of browser APIs. Enforces strict TypeScript safety for security-critical operations.",
+  "scope": ["src/**/*.{ts,tsx,js,jsx}"],
+  "checks": [
+    {
+      "id": "no-dangerously-set-inner-html",
+      "severity": "error",
+      "description": "Using dangerouslySetInnerHTML is forbidden unless explicitly documented, sanitized, and justified.",
+      "forbidden": ["dangerouslySetInnerHTML"],
+      "remediation": "Use proper sanitization or avoid raw HTML injection entirely.",
+      "exampleBad": "<div dangerouslySetInnerHTML={{ __html: userInput }} />"
+    },
+    {
+      "id": "token-storage-safety",
+      "severity": "error",
+      "description": "Access tokens, refresh tokens, and session identifiers may NOT be stored in localStorage or sessionStorage.",
+      "forbiddenPatterns": ["localStorage.setItem", "sessionStorage.setItem"],
+      "allowedIf": "Only allowed for non-sensitive UI preferences (theme, layout).",
+      "remediation": "Use HttpOnly cookies for sensitive tokens."
+    },
+    {
+      "id": "no-eval-or-function-constructor",
+      "severity": "error",
+      "description": "eval, new Function, and similar constructs open XSS attack vectors and are strictly forbidden.",
+      "forbidden": ["eval(", "new Function("],
+      "remediation": "Use safe parsers or predefined logic paths."
+    },
+    {
+      "id": "input-sanitization-required",
+      "severity": "error",
+      "description": "User-provided strings must be sanitized before rendering or processing.",
+      "patternsToDetect": ["innerHTML =", "setHTML", "html:"],
+      "exampleBad": "element.innerHTML = userInput;",
+      "exampleGood": "const safe = sanitize(userInput); element.innerHTML = safe;"
+    },
+    {
+      "id": "no-hardcoded-secrets",
+      "severity": "error",
+      "description": "Hardcoded keys, tokens, AWS credentials, or environment secrets must not be present in the code.",
+      "forbiddenPatterns": [
+        "AKIA[0-9A-Z]{16}",
+        "AIza[0-9A-Za-z-_]{35}",
+        "SECRET",
+        "TOKEN",
+        "process.env."
+      ],
+      "remediation": "Load secrets through CI, env variables, or secure storage providers."
+    },
+    {
+      "id": "csrf-safety-check",
+      "severity": "warning",
+      "description": "Detects missing CSRF protection patterns in forms or mutation endpoints.",
+      "patternsToDetect": ["fetch(", "axios."],
+      "flags": [
+        "POST without CSRF token",
+        "PATCH without CSRF token",
+        "DELETE without CSRF token"
+      ],
+      "remediation": "Include CSRF token header or body field when required."
+    },
+    {
+      "id": "unsafe-third-party-scripts",
+      "severity": "warning",
+      "description": "Untrusted external scripts (analytics, widgets, CDNs) may compromise CSP and XSS safety.",
+      "patternsToDetect": ["<script src="],
+      "remediation": "Use integrity and crossorigin attributes or self-host scripts."
+    },
+    {
+      "id": "cors-misuse",
+      "severity": "error",
+      "description": "Detects misuse of CORS logic in the frontend (attempting to set CORS headers client-side).",
+      "forbiddenPatterns": [
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Headers",
+        "Access-Control-Allow-Credentials"
+      ],
+      "exampleBad": "fetch(url, { headers: { 'Access-Control-Allow-Origin': '*' } })"
+    },
+    {
+      "id": "no-direct-cookie-manipulation",
+      "severity": "warning",
+      "description": "Direct cookie mutation may introduce security issues if not flagged as secure, HttpOnly, and SameSite.",
+      "patternsToDetect": ["document.cookie"],
+      "remediation": "Use secure server-set cookies instead."
+    },
+    {
+      "id": "secure-navigation",
+      "severity": "warning",
+      "description": "Detects external links missing rel=\"noopener noreferrer\" which prevent tab hijacking.",
+      "patternsToDetect": ["<a "],
+      "flags": ["target=\"_blank\" without rel attribute"]
+    },
+    {
+      "id": "fetch-error-handling",
+      "severity": "error",
+      "description": "API calls must include error handling to prevent silent failures and vulnerability exploitation.",
+      "patternsToDetect": ["fetch(", "axios."],
+      "flags": ["missing try/catch", "missing .catch()"],
+      "exampleBad": "const res = await fetch('/api');",
+      "exampleGood": "try { const res = await fetch('/api'); } catch (err) { handleError(err); }"
+    }
+  ],
+  "output": {
+    "format": "structured",
+    "includeFixSuggestions": true,
+    "groupByRule": true,
+    "summary": true
+  }
+}

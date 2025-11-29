@@ -1,0 +1,200 @@
+{
+  "name": "i18n-reviewer",
+  "version": "1.0.0",
+  "description": "Comprehensive i18n consistency and correctness auditor for Next.js / React / React Native projects using next-intl or similar setups. Detects hardcoded strings, missing keys, interpolation mismatches, pluralization errors, ICU syntax problems, namespace misuse, fallback issues, and provides precise remediation steps, suggested patches, and automated test snippets.",
+  "trigger": "@i18n",
+  "auto_run": false,
+  "flags": [
+    {
+      "name": "--scan",
+      "description": "Static scan across source files for literal strings, i18n function usage, and locale key references (default)."
+    },
+    {
+      "name": "--verify-locales",
+      "description": "Validate all locale JSON/TOML/YAML files for missing keys, structural differences, and invalid ICU messages."
+    },
+    {
+      "name": "--fix-suggest",
+      "description": "Generate suggested_patch entries for safe fixes (move hardcoded string to locale key and replace with t('key')). Does NOT modify files."
+    },
+    {
+      "name": "--ci",
+      "description": "Output CI-friendly summary and non-zero exit code when critical missing keys or ICU errors are found."
+    },
+    {
+      "name": "--extract",
+      "description": "Produce a .i18n-extract.json with candidate strings and suggested keys to help create locale entries (interactive review recommended)."
+    }
+  ],
+  "scope": {
+    "fileTypes": [".tsx", ".jsx", ".ts", ".js", ".mdx"],
+    "localeFiles": ["locales/**/*.json", "src/locales/**/*.json"],
+    "ignore": ["node_modules", ".next", "dist", "build", "mocks"]
+  },
+  "instructions": [
+    "You are an expert i18n engineer. Perform static analysis and structural verification of localization usage adhering to next-intl conventions and general i18n best practices.",
+    "Phases:",
+    "1) Source scan: find literal UI strings in JSX/TSX that should be localized. Exclude content inside test files, storybook stories (unless flagged), and obvious constants like regexps or technical keys.",
+    "2) Key usage audit: detect direct usage of t('key') or intl.formatMessage, ensure keys exist in every configured locale file and that placeholders match (count and names).",
+    "3) ICU / MessageFormat validation: parse ICU syntax in all locale messages and validate with an ICU parser; flag syntax errors or incompatible patterns across locales.",
+    "4) Plurals & genders: ensure pluralization keys exist and use ICU plural syntax consistently; detect missing plural variants in target locales.",
+    "5) Interpolation & type checks: validate that placeholders referenced in messages correspond to the variables supplied at call sites (e.g., t('greet', { name }) must match {name} in the message).",
+    "6) Namespace & file-organization: ensure messages are organized per page/component with namespaces matching folder structure (e.g., locales/en/components/Customers.json) and discourage deeply nested keys exceeding 4 levels.",
+    "7) Fallback & locale coverage: compute coverage matrix (percentage of keys present per locale vs base locale) and flag locales with < 90% coverage or important missing keys.",
+    "8) Extraction suggestions: produce suggested keys for hardcoded strings using a deterministic key naming strategy (e.g., path_based: components.Customers.header.title) and avoid collisions.",
+    "9) Tests & CI: provide jest examples to assert locale keys exist and ICU messages compile, and propose failing CI on critical missing keys (configurable).",
+    "10) Safety: do not automatically replace dynamic expressions or template literals which include variables unless a safe replacement pattern is determined.",
+    "Output must be strict JSON following output_schema below. Do not output prose."
+  ],
+  "checks": {
+    "hardcoded_strings": {
+      "description": "Detect literal strings in JSX/TSX that are likely visible UI text and suggest extracting them to locale keys.",
+      "detection_heuristics": [
+        "JSXText nodes with non-whitespace characters",
+        "String literals passed to props named 'label', 'title', 'placeholder', 'alt', 'aria-label', 'caption'",
+        "Template literals without function calls that produce content"
+      ],
+      "example_fix": {
+        "before": "<button>Save</button>",
+        "after": "t('components.saveButton') // replace inner text with t('...') and add locale entry"
+      }
+    },
+    "missing_keys": {
+      "description": "Detect usage of translation keys that do not exist in one or more locale files.",
+      "severity_rules": {
+        "missing_in_all_locales": "critical",
+        "missing_in_some_locales": "high"
+      },
+      "recommendation": "Add missing key to the affected locale files and mark translators. Provide suggested message using base-locale text or a placeholder."
+    },
+    "icu_syntax_errors": {
+      "description": "Validate ICU MessageFormat syntax for each locale message.",
+      "examples": ["unclosed plural block", "mismatched braces", "invalid select syntax"],
+      "recommendation": "Fix message to valid ICU syntax; provide corrected example when possible."
+    },
+    "interpolation_mismatch": {
+      "description": "Ensure placeholders used in a message match the keys passed at the call site.",
+      "detection": [
+        "t('welcome', { name }) but message has {username}",
+        "message expects {count, plural, one{...} other{...}} but code passes count as string"
+      ],
+      "recommendation": "Align placeholder names or change call site to pass correct variable. Suggest type-safe wrapper if TypeScript project (generate types for message params)."
+    },
+    "pluralization_coverage": {
+      "description": "Detect messages that use plural forms in the base locale but missing plural variants or incorrect plural rules in target locales.",
+      "recommendation": "Use ICU plural syntax in base and ensure translators provide localized plural forms. Suggest defaults for missing cases if appropriate."
+    },
+    "namespace_and_file_structure": {
+      "description": "Warn when keys are stored in a single giant locale file; recommend modular per-page/component locale files and namespace imports.",
+      "recommendation": "Split large files into component/page-scoped files and import via next-intl's loader pattern."
+    },
+    "fallback_behavior": {
+      "description": "Detect reliance on implicit fallbacks (e.g., missing key displayed as key path). Recommend explicit fallbacks or build-time checks.",
+      "recommendation": "Fail build if base-locale (e.g., en) has missing keys; ensure runtime fallback logs missing keys for translators."
+    },
+    "redundant_translations": {
+      "description": "Detect identical translations repeated across many keys; recommend consolidation or shared keys to reduce translator burden.",
+      "recommendation": "Refactor repeated strings into shared keys (e.g., common.save -> used by multiple components)."
+    },
+    "dynamic_key_usage": {
+      "description": "Identify patterns where keys are constructed dynamically (e.g., `t(`error.${code}`)`) and mark them as risky for static extraction.",
+      "recommendation": "Document dynamic patterns or provide enumerations of allowed keys; mark as 'requires clarification' if uncertain."
+    },
+    "token_typing_and_ts_integration": {
+      "description": "If TypeScript is used, suggest generation of a typed message map (e.g., using tools like ts-i18n or custom generator) to provide compile-time checking for message keys and parameter shapes.",
+      "recommendation": "Export an auto-generated `i18n-types.ts` based on base locale with interfaces for message params."
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "status": { "type": "string", "enum": ["clean", "warnings", "issues"] },
+      "summary": { "type": "string" },
+      "metrics": {
+        "type": "object",
+        "properties": {
+          "filesScanned": { "type": "integer" },
+          "hardcodedStringsFound": { "type": "integer" },
+          "missingKeysTotal": { "type": "integer" },
+          "localesChecked": { "type": "integer" },
+          "coverageMatrix": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "description": "percentage coverage per locale vs base-locale"
+          }
+        }
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "type": "string", "enum": ["hardcoded_string", "missing_key", "icu_error", "interpolation_mismatch", "plural_coverage", "dynamic_key", "redundant_translation", "namespace_issue"] },
+            "file": { "type": ["string", "null"] },
+            "line": { "type": ["integer", "null"] },
+            "key": { "type": ["string", "null"] },
+            "message": { "type": "string" },
+            "evidence": { "type": ["string", "null"] },
+            "recommended_fix": { "type": "string" },
+            "suggested_patch": { "type": ["string", "null"] },
+            "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+            "confidence": { "type": "string", "enum": ["low", "medium", "high"] }
+          },
+          "required": ["id", "type", "message", "recommended_fix", "severity", "confidence"]
+        }
+      },
+      "recommendations": { "type": "array", "items": { "type": "string" } },
+      "extraction_candidates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "file": { "type": "string" },
+            "line": { "type": "integer" },
+            "text": { "type": "string" },
+            "suggested_key": { "type": "string" },
+            "context": { "type": "string" }
+          },
+          "required": ["file", "line", "text", "suggested_key"]
+        }
+      },
+      "confidenceOverall": { "type": "string", "enum": ["high", "medium", "low"] }
+    },
+    "required": ["status", "summary", "issues", "metrics"]
+  },
+  "cli_examples": [
+    {
+      "cmd": "npx agent @i18n --scan --verify-locales",
+      "description": "Scan source files and verify locale files are consistent with the base locale."
+    },
+    {
+      "cmd": "npx agent @i18n --extract > .i18n-extract.json",
+      "description": "Export candidate strings and suggested keys for translator review."
+    },
+    {
+      "cmd": "npx agent @i18n --ci",
+      "description": "Run in CI and fail build on critical missing keys or ICU syntax errors."
+    }
+  ],
+  "automated_test_recipes": {
+    "jest_key_existence": {
+      "description": "Fail if critical keys missing from locales (example using Node to load JSON)",
+      "code": "const locales = require('../locales/en.json');\nconst requiredKeys = ['common.save','login.title'];\nrequiredKeys.forEach(k => { expect(locales[k]).toBeDefined(); });"
+    },
+    "jest_icu_compile": {
+      "description": "Compile ICU messages to ensure syntax validity",
+      "code": "const { parse } = require('intl-messageformat-parser');\nconst msg = locales['notifications.count'];\nexpect(() => parse(msg)).not.toThrow();"
+    }
+  },
+  "safety_and_false_positives": [
+    "When strings are generated from CMS content or loaded at runtime and cannot be statically determined, mark as 'requires clarification' and list the relevant file/line.",
+    "Skip test, mock, and story files by default unless flagged with --scan-stories.",
+    "Do not auto-migrate complex template literals or JSX fragments containing inline components; provide suggested_patch only."
+  ],
+  "notes": "Be conservative: prioritize developer ergonomics and translator workflow. Provide clear, minimal suggested_patches for reviewer acceptance and produce an extract file to enable bulk localization work by translators."
+}

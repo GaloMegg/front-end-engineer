@@ -1,0 +1,121 @@
+{
+  "name": "Naming Convention Enforcer",
+  "description": "Enforces strict naming conventions aligned with Clean Architecture, SOLID, and the Container/Presenter pattern used in the project.",
+  "scope": ["src/**/*.{ts,tsx,js,jsx}", "src/**/*.{css,scss}", "src/**/*.md"],
+  "rules": [
+    {
+      "id": "component-presenter-suffix",
+      "description": "Components must follow the Presenter/Container naming rule.",
+      "severity": "error",
+      "patterns": {
+        "presenter": "components/**/[A-Za-z0-9]+Presenter.(tsx|ts)",
+        "container": "containers/**/[A-Za-z0-9]+Container.(tsx|ts)"
+      },
+      "forbidden": [
+        "components/**/[A-Za-z0-9]+Container.tsx",
+        "containers/**/[A-Za-z0-9]+Presenter.tsx"
+      ],
+      "exampleBad": "components/Login.tsx",
+      "exampleGood": "components/LoginPresenter.tsx"
+    },
+    {
+      "id": "hook-naming",
+      "description": "Hooks must be camelCase and start with 'use'.",
+      "severity": "error",
+      "regex": "^use[A-Z][A-Za-z]+\\.ts$",
+      "exampleBad": "debounce.ts",
+      "exampleGood": "useDebounce.ts"
+    },
+    {
+      "id": "service-suffix",
+      "description": "Services must end in `.service.ts` and be camelCase.",
+      "severity": "error",
+      "allowedPattern": "^[a-z][a-zA-Z0-9]*\\.service\\.ts$",
+      "exampleBad": "AuthService.ts",
+      "exampleGood": "auth.service.ts"
+    },
+    {
+      "id": "data-access-suffix",
+      "description": "Data access files must end in `.da.ts` and follow domain naming.",
+      "severity": "error",
+      "allowedPattern": "^[a-z][a-zA-Z0-9]*\\.da\\.ts$",
+      "exampleBad": "vendorsAPI.ts",
+      "exampleGood": "vendor.da.ts"
+    },
+    {
+      "id": "model-suffix",
+      "description": "Models must end in `.model.ts` and be camelCase.",
+      "severity": "error",
+      "allowedPattern": "^[a-z][a-zA-Z0-9]*\\.model\\.ts$",
+      "exampleBad": "Vendor.ts",
+      "exampleGood": "vendor.model.ts"
+    },
+    {
+      "id": "type-file-suffix",
+      "description": "Shared types must end in `.types.ts`.",
+      "severity": "warning",
+      "allowedPattern": "^[a-z][a-zA-Z0-9]*\\.types\\.ts$",
+      "exampleBad": "utils.ts",
+      "exampleGood": "common.types.ts"
+    },
+    {
+      "id": "utils-naming",
+      "description": "Utility files must end in `.utils.ts` and be domain-specific.",
+      "severity": "warning",
+      "forbiddenNames": ["common.utils.ts", "helpers.ts"],
+      "exampleGood": "date.utils.ts",
+      "exampleGood2": "validation.utils.ts"
+    },
+    {
+      "id": "redux-slices-naming",
+      "description": "Slices must end with `Slice.ts`.",
+      "severity": "error",
+      "allowedPattern": "[a-zA-Z]+Slice\\.ts$",
+      "exampleBad": "authReducer.ts",
+      "exampleGood": "authSlice.ts"
+    },
+    {
+      "id": "file-name-case-style",
+      "description": "All file names must be in kebab-case or lowerCamelCase depending on type.",
+      "severity": "warning",
+      "rules": {
+        "camelCase": [
+          "hooks/",
+          "services/",
+          "data-access/",
+          "models/",
+          "utils/",
+          "types/"
+        ],
+        "pascalCase": ["components/", "containers/"]
+      },
+      "exampleBad": "Logincontainer.tsx",
+      "exampleGood": "LoginContainer.tsx"
+    },
+    {
+      "id": "folder-name-consistency",
+      "description": "Folders must follow required conventions: kebab-case for domains and PascalCase for components.",
+      "severity": "warning",
+      "rules": {
+        "kebabCaseFolders": [
+          "src/app",
+          "src/services",
+          "src/data-access",
+          "src/locales"
+        ],
+        "pascalCaseFolders": ["src/components", "src/containers"]
+      }
+    },
+    {
+      "id": "no-generic-file-names",
+      "description": "Generic names like `index.ts`, `helpers.ts`, `misc.ts`, and `common.ts` are forbidden unless absolutely required.",
+      "severity": "warning",
+      "forbidden": ["helpers.ts", "misc.ts", "common.ts", "index.ts"]
+    }
+  ],
+  "output": {
+    "format": "structured",
+    "includeFixSuggestions": true,
+    "groupByRule": true
+  }
+}

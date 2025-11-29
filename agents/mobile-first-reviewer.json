@@ -1,0 +1,85 @@
+{
+  "name": "Mobile First Reviewer",
+  "description": "Ensures strict mobile-first architecture in React/Next.js/Tailwind projects by enforcing responsive best practices, correct breakpoint usage, and mobile-first layout flows.",
+  "scope": [
+    "src/**/*.{ts,tsx}",
+    "src/**/*.{js,jsx}",
+    "src/**/*.css",
+    "src/**/*.scss",
+    "tailwind.config.js"
+  ],
+  "rules": [
+    {
+      "id": "mobile-first-breakpoint-order",
+      "description": "Ensures Tailwind classes follow a strictly mobile-first order: base → sm → md → lg → xl → 2xl.",
+      "severity": "error",
+      "exampleBad": "class=\"lg:text-xl text-sm\"",
+      "exampleGood": "class=\"text-sm lg:text-xl\""
+    },
+    {
+      "id": "desktop-first-layout",
+      "description": "Detects components designed desktop-first and adapted backwards, violating mobile-first design.",
+      "severity": "error",
+      "detection": [
+        "Width locked to desktop sizes (e.g. w-[1200px])",
+        "Heavy usage of lg:*, xl:* without base styles",
+        "Grid layouts that only collapse after large breakpoints"
+      ]
+    },
+    {
+      "id": "absolute-positioning-mobile-violation",
+      "description": "Flags absolute positioning that breaks small screens when not properly mobile-scoped.",
+      "severity": "warning",
+      "exampleBad": "absolute top-0 right-0 w-[300px]",
+      "exampleGood": "relative sm:absolute sm:top-0 sm:right-0"
+    },
+    {
+      "id": "touch-target-size",
+      "description": "Ensures clickable elements meet minimum touch target guidelines (44px).",
+      "severity": "warning",
+      "exampleBad": "<button class=\"p-1\">",
+      "exampleGood": "<button class=\"p-3\">"
+    },
+    {
+      "id": "horizontal-scroll-smell",
+      "description": "Detects unintended horizontal scroll caused by fixed widths, overflow, or layout shifts.",
+      "severity": "error",
+      "detection": [
+        "Usage of w-[100vw] instead of w-full",
+        "Overflow-x-auto used without a real need",
+        "min-w-* classes exceeding the screen on base"
+      ]
+    },
+    {
+      "id": "responsive-image-violations",
+      "description": "Validates proper use of responsive <Image> in Next.js with sizes/priority/layout settings.",
+      "severity": "warning",
+      "exampleBad": "<Image src=\"/hero.png\" width={1400} height={900} />",
+      "exampleGood": "<Image src=\"/hero.png\" fill sizes=\"(max-width: 768px) 100vw, 50vw\" />"
+    },
+    {
+      "id": "fluid-typography-missing",
+      "description": "Ensures typography scales properly across devices using Tailwind, clamp() or responsive classes.",
+      "severity": "warning",
+      "exampleBad": "<p class=\"text-lg\">",
+      "exampleGood": "<p class=\"text-base md:text-lg lg:text-xl\">"
+    },
+    {
+      "id": "spacing-too-tight-on-mobile",
+      "description": "Flags spacing that is visually acceptable on desktop but cramped on mobile.",
+      "severity": "warning",
+      "detection": ["mt-0", "px-0", "gap-0", "h-[full-desktop-size]"]
+    },
+    {
+      "id": "container-query-missing",
+      "description": "Suggests using container queries for components that behave incorrectly on narrow viewports.",
+      "severity": "suggestion",
+      "example": "If the layout breaks based on component width instead of screen width, use @container."
+    }
+  ],
+  "output": {
+    "format": "detailed-review",
+    "includeExamples": true,
+    "includeFixSuggestions": true
+  }
+}

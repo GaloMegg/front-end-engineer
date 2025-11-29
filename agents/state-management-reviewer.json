@@ -1,0 +1,103 @@
+{
+  "name": "State Management Reviewer",
+  "description": "Validates state management patterns, ensuring alignment with Clean Architecture, SOLID, and the project's Container/Presenter pattern. Enforces best practices for Redux Toolkit, Zustand, and React state usage. Detects over-rendering, state leaks, improper selector usage, and architecture violations.",
+  "scope": ["src/**/*.{ts,tsx}"],
+  "checks": [
+    {
+      "id": "presenter-state-isolation",
+      "severity": "error",
+      "description": "Presenters must not directly manage business logic state. They may only consume state via hooks/selectors provided by containers or domain layers.",
+      "forbidden": ["useState(", "useReducer("],
+      "allowedIn": ["containers/", "hooks/"],
+      "exampleBad": "LoginPresenter uses useState to handle domain-driven form state.",
+      "exampleGood": "LoginPresenter receives domain state from useLoginContainer() hook."
+    },
+    {
+      "id": "redux-slice-structure",
+      "severity": "error",
+      "description": "Redux slices must contain initialState, reducers, and optionally extraReducers. Avoid business logic inside reducers; keep them pure.",
+      "requiredProperties": ["initialState", "reducers"],
+      "forbiddenPatterns": ["new Date(", "Math.random(", "await "],
+      "exampleBad": "Reducers with async code or side effects.",
+      "exampleGood": "Side effects handled in thunks or sagas."
+    },
+    {
+      "id": "selector-memoization",
+      "severity": "warning",
+      "description": "Selectors should be memoized with createSelector to prevent unnecessary re-renders.",
+      "patternsToDetect": ["state => state."],
+      "suggestion": "Wrap selector in createSelector or use shallow equals when mapping."
+    },
+    {
+      "id": "zustand-store-pattern",
+      "severity": "error",
+      "description": "Zustand stores must follow best practices: no async logic inside setters, separate selectors, and state must be serializable.",
+      "forbiddenPatterns": ["async (set", "await set("],
+      "exampleBad": "set(async () => await apiCall())",
+      "exampleGood": "Store exposes actions; async behavior happens outside setters."
+    },
+    {
+      "id": "unnecessary-global-state",
+      "severity": "warning",
+      "description": "Detects state variables that are local UI state but placed in global Redux/Zustand store.",
+      "heuristics": [
+        "string or number not referenced in more than 1 file",
+        "state used only by a single component",
+        "no external side effects"
+      ],
+      "exampleBad": "isModalOpen placed in Redux.",
+      "exampleGood": "isModalOpen handled in a local useState."
+    },
+    {
+      "id": "container-handles-side-effects",
+      "severity": "error",
+      "description": "Side effects (API calls, async operations, caching logic) must occur in containers, not presenters.",
+      "forbidden": ["useEffect(", "fetch(", "axios.", "api."],
+      "allowedIn": ["containers/"],
+      "exampleBad": "Presenter performing API calls.",
+      "exampleGood": "Container fetches data and passes formatted output to presenter."
+    },
+    {
+      "id": "no-duplicate-state-sources",
+      "severity": "error",
+      "description": "Detects duplicated pieces of state across Redux, Zustand, and local component state. Ensures a single source of truth.",
+      "forbiddenPatterns": ["useState(", "useSelector(", "useStore("],
+      "detectionStrategy": "Flags variables with identical names and purposes across layers."
+    },
+    {
+      "id": "over-render-detection",
+      "severity": "warning",
+      "description": "Detects excessive renders due to unstable callback dependencies, large objects in state, or improper memoization.",
+      "patternsToDetect": ["useCallback(", "useMemo("],
+      "flags": [
+        "object literals in dependency arrays",
+        "functions defined inside renders without memoization",
+        "selectors returning non-primitive values"
+      ]
+    },
+    {
+      "id": "immutable-state-enforcement",
+      "severity": "error",
+      "description": "Mutating state outside of Redux Toolkit's Immer context is forbidden.",
+      "forbidden": [".push(", ".splice(", "state ="],
+      "allowedIf": "Inside RTK createSlice reducers."
+    },
+    {
+      "id": "proper-domain-boundaries",
+      "severity": "error",
+      "description": "Domain-specific state must live in the correct domain folder, not globally.",
+      "patterns": {
+        "domain": "src/domains/{entity}/state/",
+        "forbidden": "src/state/"
+      },
+      "exampleBad": "Vendor filters placed in global filters slice.",
+      "exampleGood": "vendor/state/vendorFiltersSlice.ts"
+    }
+  ],
+  "output": {
+    "format": "structured",
+    "includeFixSuggestions": true,
+    "groupByRule": true,
+    "summary": true
+  }
+}

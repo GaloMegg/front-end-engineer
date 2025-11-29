@@ -1,0 +1,39 @@
+{
+  "name": "@galomegg/frontend-agent",
+  "version": "1.0.16",
+  "description": "A specialized Cursor agent designed to assist frontend engineers by enforcing architecture standards, validating UI patterns, improving code consistency, and ensuring best practices across React, Next.js, and TypeScript projects.",
+  "type": "commonjs",
+  "scripts": {
+    "postinstall": "node ./scripts/postinstall.js",
+    "build": "echo 'No build step currently required'"
+  },
+  "bin": {
+    "frontend-agent": "scripts/postinstall.js"
+  },
+  "keywords": [
+    "frontend",
+    "agent",
+    "cursor",
+    "react",
+    "next.js",
+    "typescript",
+    "eslint",
+    "automation",
+    "cli"
+  ],
+  "author": "Galomegg",
+  "license": "MIT",
+  "files": [
+    "agents/**/*",
+    "scripts/**/*",
+    "README.md"
+  ],
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "chalk": "^5.3.0",
+    "glob": "^10.3.10"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
