@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+      - 'agents/**'
+      - 'scripts/**'
+
+jobs:
+  release:
+    name: Release to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Check if version already published
+        id: check-version
+        run: |
+          VERSION="${{ steps.package-version.outputs.version }}"
+          if npm view @galomegg/frontend-agent@$VERSION version > /dev/null 2>&1; then
+            echo "published=true" >> $GITHUB_OUTPUT
+            echo "Version $VERSION already published, skipping release"
+          else
+            echo "published=false" >> $GITHUB_OUTPUT
+            echo "Version $VERSION not published, proceeding with release"
+          fi
+
+      - name: Publish to npm
+        if: steps.check-version.outputs.published == 'false'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.check-version.outputs.published == 'false'
+        uses: ncipollo/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.package-version.outputs.version }}
+          name: Release v${{ steps.package-version.outputs.version }}
+          body: |
+            ## Changes in v${{ steps.package-version.outputs.version }}
+            
+            ### Installation
+            ```bash
+            npm install @galomegg/frontend-agent@${{ steps.package-version.outputs.version }}
+            ```
+            
+            ### What's included
+            - 15 specialized frontend engineering agents
+            - Automatic installation to `.cursor/agents/` directory
+            - Comprehensive code review capabilities
+          draft: false
+          prerelease: false
+
